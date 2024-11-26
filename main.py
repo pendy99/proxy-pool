@@ -7,7 +7,6 @@ from lxml import html
 
 ## 2024.11.26 : 已经修复了，从代理网站获取候选验证的代理...
 
-
 class ProxyFetcher:
     """
     Proxy getter
