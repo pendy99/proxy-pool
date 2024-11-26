@@ -1,5 +1,4 @@
 # proxypool
-
 ## 使用方法
 
 ```
@@ -7,48 +6,6 @@ python main.py
 python verify.py
 ```
 
-
-要在当前目录下创建一个虚拟环境 (`venv`)，使它仅影响当前目录下的 Python 环境和包的安装，可以按照以下步骤进行操作：
-
-1. **在当前目录创建虚拟环境**：
-   使用 Python 的内置模块 `venv` 来创建虚拟环境，确保你的工作目录是你想创建虚拟环境的目录。
-
-   ```bash
-   python3 -m venv venv
-   ```
-
-   上面的命令会在当前目录下创建一个名为 `venv` 的文件夹，这个文件夹包含 Python 解释器及其他必需的工具（如 `pip`），并且它们只在此虚拟环境中有效。
-
-2. **激活虚拟环境**：
-   在虚拟环境中运行 Python 或安装包需要激活环境。激活后，所有安装的包只会影响当前虚拟环境。
-
-   - **Linux/macOS**：
-     ```bash
-     source venv/bin/activate
-     ```
-   - **Windows**：
-     ```bash
-     .\venv\Scripts\activate
-     ```
-
-3. **验证激活成功**：
-   激活后，你会看到命令行前面会显示 `(venv)`，例如：
-   ```bash
-   (venv) user@machine:~/current_directory$
-   ```
-   这表示你正在使用虚拟环境。
-
-4. **影响范围仅限当前目录**：
-   - 在激活虚拟环境之后，所有安装的 Python 包只会安装在 `venv` 文件夹下，这样可以避免影响全局 Python 环境。
-   - 激活的虚拟环境在当前终端窗口中有效，一旦你关闭终端或注销，虚拟环境将不再激活。如果你想在其他目录下使用 Python，则需要在那些目录中激活相应的虚拟环境。
-   - 你可以在虚拟环境中通过 `pip freeze` 查看当前环境中的已安装包。
-
-5. **退出虚拟环境**：
-   如果你想退出虚拟环境，可以使用以下命令：
-   ```bash
-   deactivate
-   ```
-
-   退出后，终端会返回到全局 Python 环境，不再使用虚拟环境中的包。
-
-总结来说，创建虚拟环境 (`venv`) 可以保证 Python 包仅限于当前目录的虚拟环境中，不会影响全局的 Python 环境。每次进入当前目录开发时，只需激活这个环境即可。
+## 参考理解
+ - https://github.com/projectdiscovery/katana
+ - https://github.com/spider-rs/spider
