@@ -64,12 +64,12 @@ async def validate_http_proxy(session, proxy):
 
 async def main():
     """主函数，串联各个验证步骤"""
-    # 读取 proxy.md 文件中的代理列表
+    # 读取 proxy.txt 文件中的代理列表
     try:
-        with open('proxy.md', 'r') as file:
+        with open('proxy.txt', 'r') as file:
             proxies = [line.strip() for line in file.readlines() if line.strip()]
     except FileNotFoundError:
-        print("错误: proxy.md 文件未找到")
+        print("错误: proxy.txt 文件未找到")
         return
 
     # 创建以当前日期为名称的文件夹，并创建 README.md 文件
@@ -112,7 +112,7 @@ async def main():
                 # 将验证通过的代理追加到 README.md 文件末尾
                 try:
                     with open(readme_path, 'a+') as readme_file:
-                        readme_file.write(proxy + '\n')
+                        readme_file.write(f" - {proxy}" + '\n')
                     print("\u2514── 已将代理追加到 README.md 文件末尾")
                 except IOError:
                     print("\u2514── 错误: 无法写入 README.md 文件")

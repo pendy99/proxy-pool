@@ -25,8 +25,8 @@ class ProxyFetcher:
 
     @staticmethod
     def write_proxy_to_file(proxy):
-        """Append the proxy to proxy.md file"""
-        with open("proxy.md", "a+") as file:
+        """Append the proxy to proxy.txt file"""
+        with open("proxy.txt", "a+") as file:
             file.write(proxy + "\n")
 
     @staticmethod
