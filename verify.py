@@ -4,6 +4,8 @@ import re
 import aiohttp
 import asyncio
 import random
+import os
+from datetime import datetime
 
 # 请求头信息列表，用于模拟浏览器请求
 USER_AGENTS = [
@@ -70,6 +72,14 @@ async def main():
         print("错误: proxy.md 文件未找到")
         return
 
+    # 创建以当前日期为名称的文件夹，并创建 README.md 文件
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    os.makedirs(current_date, exist_ok=True)
+    readme_path = os.path.join(current_date, 'README.md')
+    if not os.path.exists(readme_path):
+        with open(readme_path, 'w') as readme_file:
+            readme_file.write("# 验证通过的代理列表\n\n")
+
     async with aiohttp.ClientSession() as session:
         tasks = []
         for proxy in proxies:
@@ -99,13 +109,13 @@ async def main():
         for (proxy, task), result in zip(tasks, results):
             if result:
                 print(f"\u2514── HTTP验证通过，代理可用！")
-                # 将验证通过的代理追加到 ok.md 文件末尾
+                # 将验证通过的代理追加到 README.md 文件末尾
                 try:
-                    with open('ok.md', 'a+') as ok_file:
-                        ok_file.write(proxy + '\n')
-                    print("\u2514── 已将代理追加到 ok.md 文件末尾")
+                    with open(readme_path, 'a+') as readme_file:
+                        readme_file.write(proxy + '\n')
+                    print("\u2514── 已将代理追加到 README.md 文件末尾")
                 except IOError:
-                    print("\u2514── 错误: 无法写入 ok.md 文件")
+                    print("\u2514── 错误: 无法写入 README.md 文件")
             else:
                 print(f"\u2514── HTTP验证失败: {proxy}")
 
