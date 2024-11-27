@@ -56,7 +56,7 @@ async def validate_http_proxy(session, proxy):
     }
 
     try:
-        async with session.get("https://baidu.com/", headers=headers, proxy=proxies['https'], timeout=5) as response:
+        async with session.get("https://juejin.cn/post/7441247235563028531", headers=headers, proxy=proxies['http'], timeout=5) as response:
             return response.status == 200
     except (aiohttp.ClientError, asyncio.TimeoutError):
         return False
@@ -73,7 +73,7 @@ async def main():
         return
 
     # 创建以当前日期为名称的文件夹，并创建 README.md 文件
-    current_date = "data/" + datetime.now().strftime("%Y-%m-%d")
+    current_date = datetime.now().strftime("%Y-%m-%d")
     os.makedirs(current_date, exist_ok=True)
     readme_path = os.path.join(current_date, 'README.md')
     if not os.path.exists(readme_path):
