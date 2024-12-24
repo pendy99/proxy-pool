@@ -32,8 +32,26 @@ class ProxyFetcher:
     def free_proxy_03():
         """开心代理"""
         target_urls = [
-            "http://www.kxdaili.com/dailiip.html",
-            "http://www.kxdaili.com/dailiip/2/1.html"
+            "http://www.kxdaili.com/dailiip/1/1.html",
+            "http://www.kxdaili.com/dailiip/1/2.html",
+            "http://www.kxdaili.com/dailiip/1/3.html",
+            "http://www.kxdaili.com/dailiip/1/4.html",
+            "http://www.kxdaili.com/dailiip/1/5.html",
+            "http://www.kxdaili.com/dailiip/1/6.html",
+            "http://www.kxdaili.com/dailiip/1/7.html",
+            "http://www.kxdaili.com/dailiip/1/8.html",
+            "http://www.kxdaili.com/dailiip/1/9.html",
+            "http://www.kxdaili.com/dailiip/1/10.html",
+            "http://www.kxdaili.com/dailiip/2/1.html",
+            "http://www.kxdaili.com/dailiip/2/2.html",
+            "http://www.kxdaili.com/dailiip/2/3.html",
+            "http://www.kxdaili.com/dailiip/2/4.html",
+            "http://www.kxdaili.com/dailiip/2/5.html",
+            "http://www.kxdaili.com/dailiip/2/6.html",
+            "http://www.kxdaili.com/dailiip/2/7.html",
+            "http://www.kxdaili.com/dailiip/2/8.html",
+            "http://www.kxdaili.com/dailiip/2/9.html",
+            "http://www.kxdaili.com/dailiip/2/10.html",
         ]
         headers = ProxyFetcher.get_headers()
         for url in target_urls:
@@ -47,7 +65,7 @@ class ProxyFetcher:
                 yield proxy
 
     @staticmethod
-    def free_proxy_05(page_count=1):
+    def free_proxy_05(page_count=7404):
         """
         快代理 https://www.kuaidaili.com
         """
@@ -80,7 +98,27 @@ class ProxyFetcher:
     @staticmethod
     def free_proxy_07():
         """云代理"""
-        urls = ['http://www.ip3366.net/free/?stype=1', "http://www.ip3366.net/free/?stype=2"]
+        urls = ['http://www.ip3366.net/free/?stype=1&page=1',
+                'http://www.ip3366.net/free/?stype=1&page=2',
+                'http://www.ip3366.net/free/?stype=1&page=3',
+                'http://www.ip3366.net/free/?stype=1&page=4',
+                'http://www.ip3366.net/free/?stype=1&page=5',
+                'http://www.ip3366.net/free/?stype=1&page=6',
+                'http://www.ip3366.net/free/?stype=1&page=7',
+                'http://www.ip3366.net/free/?stype=1&page=8',
+                'http://www.ip3366.net/free/?stype=1&page=9',
+                'http://www.ip3366.net/free/?stype=1&page=10',
+                'http://www.ip3366.net/free/?stype=2&page=1',
+                'http://www.ip3366.net/free/?stype=2&page=2',
+                'http://www.ip3366.net/free/?stype=2&page=3',
+                'http://www.ip3366.net/free/?stype=2&page=4',
+                'http://www.ip3366.net/free/?stype=2&page=5',
+                'http://www.ip3366.net/free/?stype=2&page=6',
+                'http://www.ip3366.net/free/?stype=2&page=7',
+                'http://www.ip3366.net/free/?stype=2&page=8',
+                'http://www.ip3366.net/free/?stype=2&page=9',
+                'http://www.ip3366.net/free/?stype=2&page=10',
+                ]
         headers = ProxyFetcher.get_headers()
         for url in urls:
             response = requests.get(url, headers=headers, timeout=10, verify=False)
