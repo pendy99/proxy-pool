@@ -65,7 +65,7 @@ class ProxyFetcher:
                 yield proxy
 
     @staticmethod
-    def free_proxy_05(page_count=7404):
+    def free_proxy_05(page_count=20):
         """
         快代理 https://www.kuaidaili.com
         """
