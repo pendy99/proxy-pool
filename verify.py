@@ -7,7 +7,6 @@ import random
 import os
 from datetime import datetime
 
-# 请求头信息列表，用于模拟浏览器请求
 USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:34.0) Gecko/20100101 Firefox/34.0',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
@@ -19,8 +18,8 @@ USER_AGENTS = [
 # 匹配代理IP的正则表达式
 IP_REGEX = re.compile(r"(.*:.*@)?\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}")
 
-
 class ProxyValidator:
+    
     # 预验证和HTTP验证的列表
     pre_validators = []
     http_validators = []
@@ -37,42 +36,39 @@ class ProxyValidator:
         cls.http_validators.append(func)
         return func
 
-
 @ProxyValidator.add_pre_validator
 def validate_format(proxy):
     """检查代理格式是否正确"""
     return True if IP_REGEX.fullmatch(proxy) else False
 
-
-@ProxyValidator.add_http_validator
-async def validate_http_proxy(session, proxy):
+async def validate_http_proxy(session, semaphore, proxy):
     """验证HTTP代理是否有效"""
-    proxies = {
-        "http": f"http://{proxy}",
-        "https": f"https://{proxy}"
-    }
-    headers = {
-        'User-Agent': random.choice(USER_AGENTS)
-    }
+    async with semaphore:
+        proxies = {
+            "http": f"http://{proxy}",
+            "https": f"https://{proxy}"
+        }
+        headers = {
+            'User-Agent': random.choice(USER_AGENTS)
+        }
 
-    try:
-        async with session.get("https://juejin.cn/post/7441247235563028531", headers=headers, proxy=proxies['http'], timeout=5) as response:
-            return response.status == 200
-    except (aiohttp.ClientError, asyncio.TimeoutError):
-        return False
-
+        try:
+            async with session.get("http://www.ip3366.net/", headers=headers, proxy=proxies['http'], timeout=3) as response:
+                return response.status == 200
+        except (aiohttp.ClientError, asyncio.TimeoutError):
+            return False
 
 async def main():
     """主函数，串联各个验证步骤"""
-    # 读取 proxy.txt 文件中的代理列表
     try:
         with open('proxy.txt', 'r') as file:
-            proxies = [line.strip() for line in file.readlines() if line.strip()]
+            proxies = list(set(line.strip() for line in file.readlines() if line.strip()))
     except FileNotFoundError:
         print("错误: proxy.txt 文件未找到")
         return
+    
+    print(f"共读取到 {len(proxies)} 个代理")
 
-    # 创建以当前日期为名称的文件夹，并创建 README.md 文件
     current_date = datetime.now().strftime("%Y-%m-%d")
     os.makedirs(current_date, exist_ok=True)
     readme_path = os.path.join(current_date, 'README.md')
@@ -82,10 +78,10 @@ async def main():
 
     async with aiohttp.ClientSession() as session:
         tasks = []
+        semaphore = asyncio.Semaphore(100)  # 限制并发数为100
         for proxy in proxies:
             print(f"\n开始验证代理: {proxy}")
 
-            # 进行预验证
             print("\u251c── 进行预验证...")
             pre_validation_passed = True
             for validator in ProxyValidator.pre_validators:
@@ -98,18 +94,15 @@ async def main():
                 continue
             print("\u251c── 预验证通过")
 
-            # 进行HTTP验证
             print("\u251c── 进行HTTP验证...")
-            task = validate_http_proxy(session, proxy)
+            task = validate_http_proxy(session, semaphore, proxy)  # 将信号量传递给任务
             tasks.append((proxy, task))
 
-        # 执行所有的HTTP验证任务
         results = await asyncio.gather(*(task for _, task in tasks))
 
         for (proxy, task), result in zip(tasks, results):
             if result:
                 print(f"\u2514── HTTP验证通过，代理可用！")
-                # 将验证通过的代理追加到 README.md 文件末尾
                 try:
                     with open(readme_path, 'a+') as readme_file:
                         readme_file.write(f" - {proxy}" + '\n')
@@ -118,7 +111,6 @@ async def main():
                     print("\u2514── 错误: 无法写入 README.md 文件")
             else:
                 print(f"\u2514── HTTP验证失败: {proxy}")
-
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -6,6 +6,7 @@ import requests
 from lxml import html
 
 ## 2024.11.26 : 已经修复了，从代理网站获取候选验证的代理...
+requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 class ProxyFetcher:
     """
@@ -159,10 +160,12 @@ def main():
     proxy_fetcher = ProxyFetcher()
     for proxy_source in [proxy_fetcher.free_proxy_03, proxy_fetcher.free_proxy_05,
                          proxy_fetcher.free_proxy_07, proxy_fetcher.free_proxy_10, proxy_fetcher.free_proxy_11]:
-        print(f"Fetching proxies from: {proxy_source.__name__}")
-        for proxy in proxy_source():
-            print(proxy)
-
+        try:
+            print(f"Fetching proxies from: {proxy_source.__name__}")
+            for proxy in proxy_source():
+                print(proxy)
+        except:
+            pass
 
 if __name__ == '__main__':
     main()
