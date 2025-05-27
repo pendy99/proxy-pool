@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import re
 import aiohttp
 import asyncio
@@ -15,102 +14,72 @@ USER_AGENTS = [
     'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1'
 ]
 
-# 匹配代理IP的正则表达式
 IP_REGEX = re.compile(r"(.*:.*@)?\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}")
 
 class ProxyValidator:
-    
-    # 预验证和HTTP验证的列表
     pre_validators = []
     http_validators = []
 
     @classmethod
     def add_pre_validator(cls, func):
-        """添加预验证函数"""
         cls.pre_validators.append(func)
         return func
 
     @classmethod
     def add_http_validator(cls, func):
-        """添加HTTP验证函数"""
         cls.http_validators.append(func)
         return func
 
 @ProxyValidator.add_pre_validator
 def validate_format(proxy):
-    """检查代理格式是否正确"""
     return True if IP_REGEX.fullmatch(proxy) else False
 
 async def validate_http_proxy(session, semaphore, proxy):
-    """验证HTTP代理是否有效"""
     async with semaphore:
-        proxies = {
-            "http": f"http://{proxy}",
-            "https": f"https://{proxy}"
-        }
         headers = {
             'User-Agent': random.choice(USER_AGENTS)
         }
-
+        proxy_url = f"http://{proxy}"
         try:
-            async with session.get("http://www.ip3366.net/", headers=headers, proxy=proxies['http'], timeout=3) as response:
+            async with session.get("http://www.ip3366.net/", headers=headers, proxy=proxy_url, timeout=3) as response:
                 return response.status == 200
         except (aiohttp.ClientError, asyncio.TimeoutError):
             return False
 
 async def main():
-    """主函数，串联各个验证步骤"""
     try:
-        with open('proxy.txt', 'r') as file:
-            proxies = list(set(line.strip() for line in file.readlines() if line.strip()))
+        with open('proxy.txt', 'r', encoding='utf-8') as file:
+            raw_proxies = set(line.strip() for line in file if line.strip())
     except FileNotFoundError:
         print("错误: proxy.txt 文件未找到")
         return
-    
-    print(f"共读取到 {len(proxies)} 个代理")
+
+    valid_proxies = [p for p in raw_proxies if all(v(p) for v in ProxyValidator.pre_validators)]
+    print(f"共读取到 {len(raw_proxies)} 个代理，格式有效的有 {len(valid_proxies)} 个")
 
     current_date = datetime.now().strftime("%Y-%m-%d")
     os.makedirs(current_date, exist_ok=True)
     readme_path = os.path.join(current_date, 'README.md')
     if not os.path.exists(readme_path):
-        with open(readme_path, 'w') as readme_file:
+        with open(readme_path, 'w', encoding='utf-8') as readme_file:
             readme_file.write("# 验证通过的代理列表\n\n")
 
-    async with aiohttp.ClientSession() as session:
-        tasks = []
-        semaphore = asyncio.Semaphore(100)  # 限制并发数为100
-        for proxy in proxies:
-            print(f"\n开始验证代理: {proxy}")
+    semaphore = asyncio.Semaphore(100)
+    connector = aiohttp.TCPConnector(limit=100)
 
-            print("\u251c── 进行预验证...")
-            pre_validation_passed = True
-            for validator in ProxyValidator.pre_validators:
-                if not validator(proxy):
-                    print(f"\u251c── 预验证失败: {validator.__name__}")
-                    pre_validation_passed = False
-                    break
+    async with aiohttp.ClientSession(connector=connector) as session:
+        tasks = [(proxy, asyncio.create_task(validate_http_proxy(session, semaphore, proxy)))
+                 for proxy in valid_proxies]
 
-            if not pre_validation_passed:
-                continue
-            print("\u251c── 预验证通过")
+        results = await asyncio.gather(*(t for _, t in tasks))
+        success_proxies = [proxy for (proxy, _), result in zip(tasks, results) if result]
 
-            print("\u251c── 进行HTTP验证...")
-            task = validate_http_proxy(session, semaphore, proxy)  # 将信号量传递给任务
-            tasks.append((proxy, task))
+    if success_proxies:
+        with open(readme_path, 'a', encoding='utf-8') as readme_file:
+            for proxy in success_proxies:
+                readme_file.write(f" - {proxy}\n")
 
-        results = await asyncio.gather(*(task for _, task in tasks))
-
-        for (proxy, task), result in zip(tasks, results):
-            if result:
-                print(f"\u2514── HTTP验证通过，代理可用！")
-                try:
-                    with open(readme_path, 'a+') as readme_file:
-                        readme_file.write(f" - {proxy}" + '\n')
-                    print("\u2514── 已将代理追加到 README.md 文件末尾")
-                except IOError:
-                    print("\u2514── 错误: 无法写入 README.md 文件")
-            else:
-                print(f"\u2514── HTTP验证失败: {proxy}")
+    print(f"验证完成：{len(success_proxies)} 个代理可用。")
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -1,171 +1,106 @@
 # -*- coding: utf-8 -*-
-
-import re
-from time import sleep
-import requests
+import asyncio
+import aiohttp
+from aiohttp import ClientSession
 from lxml import html
+import re
+from pathlib import Path
 
-## 2024.11.26 : 已经修复了，从代理网站获取候选验证的代理...
-requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+class AsyncProxyFetcher:
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Connection": "keep-alive"
+    }
 
-class ProxyFetcher:
-    """
-    Proxy getter
-    """
+    def __init__(self):
+        self.proxy_file = Path("proxy.txt")
+        self.proxy_file.write_text("")
 
-    @staticmethod
-    def get_headers():
-        """Generate headers to make requests look like a browser"""
-        return {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Connection": "keep-alive"
+    async def fetch(self, url: str, session: ClientSession) -> str:
+        try:
+            async with session.get(url, timeout=10, ssl=False) as response:
+                content = await response.read()
+                return content.decode('utf-8', errors='ignore')
+        except Exception as e:
+            print(f"Failed to fetch {url}: {e}")
+            return ""
+
+    async def parse_kxdaili(self, session: ClientSession, url: str):
+        html_text = await self.fetch(url, session)
+        tree = html.fromstring(html_text)
+        proxies = []
+        for tr in tree.xpath("//table[@class='active']//tr")[1:]:
+            ip = "".join(tr.xpath('./td[1]/text()')).strip()
+            port = "".join(tr.xpath('./td[2]/text()')).strip()
+            if ip and port:
+                proxies.append(f"{ip}:{port}")
+        return proxies
+
+    async def parse_kuaidaili(self, session: ClientSession, url: str):
+        html_text = await self.fetch(url, session)
+        tree = html.fromstring(html_text)
+        proxies = []
+        for tr in tree.xpath(".//table//tr")[1:]:
+            ip = tr.xpath('./td[1]/text()')[0].strip()
+            port = tr.xpath('./td[2]/text()')[0].strip()
+            proxies.append(f"{ip}:{port}")
+        return proxies
+
+    async def parse_ip3366(self, session: ClientSession, url: str):
+        html_text = await self.fetch(url, session)
+        proxies = re.findall(r'<td>(\d{1,3}(?:\.\d{1,3}){3})</td>[\s\S]*?<td>(\d+)</td>', html_text)
+        return [f"{ip}:{port}" for ip, port in proxies]
+
+    async def parse_89ip(self, session: ClientSession, url: str):
+        html_text = await self.fetch(url, session)
+        proxies = re.findall(r'<td.*?>(\d{1,3}(?:\.\d{1,3}){3})</td>[\s\S]*?<td.*?>(\d+)</td>', html_text)
+        return [f"{ip}:{port}" for ip, port in proxies]
+
+    async def parse_docip(self, session: ClientSession, url: str):
+        try:
+            async with session.get(url, timeout=10, ssl=False) as resp:
+                json_data = await resp.json()
+                return [item['ip'] for item in json_data.get('data', [])]
+        except Exception as e:
+            print(f"Failed to fetch JSON from {url}: {e}")
+            return []
+
+    async def gather_all(self):
+        urls = {
+            self.parse_kxdaili: [
+                f"http://www.kxdaili.com/dailiip/{i}/{j}.html"
+                for i in [1, 2] for j in range(1, 11)
+            ],
+            self.parse_kuaidaili: [
+                f"https://www.kuaidaili.com/free/inha/{i}/" for i in range(1, 6)
+            ] + [
+                f"https://www.kuaidaili.com/free/intr/{i}/" for i in range(1, 6)
+            ],
+            self.parse_ip3366: [
+                f"http://www.ip3366.net/free/?stype={stype}&page={i}"
+                for stype in [1, 2] for i in range(1, 6)
+            ],
+            self.parse_89ip: ["https://www.89ip.cn/index_1.html"],
+            self.parse_docip: ["https://www.docip.net/data/free.json"]
         }
 
-    @staticmethod
-    def write_proxy_to_file(proxy):
-        """Append the proxy to proxy.txt file"""
-        with open("proxy.txt", "a+") as file:
-            file.write(proxy + "\n")
+        async with aiohttp.ClientSession(headers=self.headers) as session:
+            tasks = []
+            for parser, url_list in urls.items():
+                for url in url_list:
+                    tasks.append(parser(session, url))
 
-    @staticmethod
-    def free_proxy_03():
-        """开心代理"""
-        target_urls = [
-            "http://www.kxdaili.com/dailiip/1/1.html",
-            "http://www.kxdaili.com/dailiip/1/2.html",
-            "http://www.kxdaili.com/dailiip/1/3.html",
-            "http://www.kxdaili.com/dailiip/1/4.html",
-            "http://www.kxdaili.com/dailiip/1/5.html",
-            "http://www.kxdaili.com/dailiip/1/6.html",
-            "http://www.kxdaili.com/dailiip/1/7.html",
-            "http://www.kxdaili.com/dailiip/1/8.html",
-            "http://www.kxdaili.com/dailiip/1/9.html",
-            "http://www.kxdaili.com/dailiip/1/10.html",
-            "http://www.kxdaili.com/dailiip/2/1.html",
-            "http://www.kxdaili.com/dailiip/2/2.html",
-            "http://www.kxdaili.com/dailiip/2/3.html",
-            "http://www.kxdaili.com/dailiip/2/4.html",
-            "http://www.kxdaili.com/dailiip/2/5.html",
-            "http://www.kxdaili.com/dailiip/2/6.html",
-            "http://www.kxdaili.com/dailiip/2/7.html",
-            "http://www.kxdaili.com/dailiip/2/8.html",
-            "http://www.kxdaili.com/dailiip/2/9.html",
-            "http://www.kxdaili.com/dailiip/2/10.html",
-        ]
-        headers = ProxyFetcher.get_headers()
-        for url in target_urls:
-            response = requests.get(url, headers=headers, verify=False)
-            tree = html.fromstring(response.content)
-            for tr in tree.xpath("//table[@class='active']//tr")[1:]:
-                ip = "".join(tr.xpath('./td[1]/text()')).strip()
-                port = "".join(tr.xpath('./td[2]/text()')).strip()
-                proxy = f"{ip}:{port}"
-                ProxyFetcher.write_proxy_to_file(proxy)
-                yield proxy
+            results = await asyncio.gather(*tasks)
+            all_proxies = [proxy for sublist in results for proxy in sublist if proxy]
 
-    @staticmethod
-    def free_proxy_05(page_count=10):
-        """
-        快代理 https://www.kuaidaili.com
-        """
-        base_urls = [
-            'https://www.kuaidaili.com/free/inha/{}/',
-            'https://www.kuaidaili.com/free/intr/{}/'
-        ]
-        headers = ProxyFetcher.get_headers()
+            with self.proxy_file.open("a") as f:
+                for proxy in all_proxies:
+                    f.write(proxy + "\n")
 
-        # 构造所有需要爬取的 URL
-        urls_to_scrape = []
-        for page_index in range(1, page_count + 1):
-            for base_url in base_urls:
-                urls_to_scrape.append(base_url.format(page_index))
-
-        # 爬取每个 URL 并提取代理信息
-        for url in urls_to_scrape:
-            response = requests.get(url, headers=headers, verify=False)
-            tree = html.fromstring(response.content)
-            rows = tree.xpath('.//table//tr')[1:]  # 跳过表头
-            sleep(1)  # 必须 sleep，防止频率过高被封禁
-
-            for row in rows:
-                ip = row.xpath('./td[1]/text()')[0].strip()
-                port = row.xpath('./td[2]/text()')[0].strip()
-                proxy = f"{ip}:{port}"
-                ProxyFetcher.write_proxy_to_file(proxy)
-                yield proxy
-
-    @staticmethod
-    def free_proxy_07():
-        """云代理"""
-        urls = ['http://www.ip3366.net/free/?stype=1&page=1',
-                'http://www.ip3366.net/free/?stype=1&page=2',
-                'http://www.ip3366.net/free/?stype=1&page=3',
-                'http://www.ip3366.net/free/?stype=1&page=4',
-                'http://www.ip3366.net/free/?stype=1&page=5',
-                'http://www.ip3366.net/free/?stype=1&page=6',
-                'http://www.ip3366.net/free/?stype=1&page=7',
-                'http://www.ip3366.net/free/?stype=1&page=8',
-                'http://www.ip3366.net/free/?stype=1&page=9',
-                'http://www.ip3366.net/free/?stype=1&page=10',
-                'http://www.ip3366.net/free/?stype=2&page=1',
-                'http://www.ip3366.net/free/?stype=2&page=2',
-                'http://www.ip3366.net/free/?stype=2&page=3',
-                'http://www.ip3366.net/free/?stype=2&page=4',
-                'http://www.ip3366.net/free/?stype=2&page=5',
-                'http://www.ip3366.net/free/?stype=2&page=6',
-                'http://www.ip3366.net/free/?stype=2&page=7',
-                'http://www.ip3366.net/free/?stype=2&page=8',
-                'http://www.ip3366.net/free/?stype=2&page=9',
-                'http://www.ip3366.net/free/?stype=2&page=10',
-                ]
-        headers = ProxyFetcher.get_headers()
-        for url in urls:
-            response = requests.get(url, headers=headers, timeout=10, verify=False)
-            proxies = re.findall(r'<td>(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})</td>[\s\S]*?<td>(\d+)</td>', response.text)
-            for proxy in proxies:
-                proxy_str = ":".join(proxy)
-                ProxyFetcher.write_proxy_to_file(proxy_str)
-                yield proxy_str
-
-    @staticmethod
-    def free_proxy_10():
-        """ 89免费代理 """
-        headers = ProxyFetcher.get_headers()
-        response = requests.get("https://www.89ip.cn/index_1.html", headers=headers, verify=False, timeout=10)
-        proxies = re.findall(
-            r'<td.*?>[\s\S]*?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})[\s\S]*?</td>[\s\S]*?<td.*?>[\s\S]*?(\d+)[\s\S]*?</td>',
-            response.text)
-        for proxy in proxies:
-            proxy_str = ':'.join(proxy)
-            ProxyFetcher.write_proxy_to_file(proxy_str)
-            yield proxy_str
-
-    @staticmethod
-    def free_proxy_11():
-        """ 稻壳代理 https://www.docip.net/ """
-        headers = ProxyFetcher.get_headers()
-        response = requests.get("https://www.docip.net/data/free.json", headers=headers, verify=False, timeout=10)
-        try:
-            data = response.json().get('data', [])
-            for each in data:
-                proxy = each['ip']
-                ProxyFetcher.write_proxy_to_file(proxy)
-                yield proxy
-        except Exception as e:
-            print(e)
-
-def main():
-    proxy_fetcher = ProxyFetcher()
-    for proxy_source in [proxy_fetcher.free_proxy_03, proxy_fetcher.free_proxy_05,
-                         proxy_fetcher.free_proxy_07, proxy_fetcher.free_proxy_10, proxy_fetcher.free_proxy_11]:
-        try:
-            print(f"Fetching proxies from: {proxy_source.__name__}")
-            for proxy in proxy_source():
-                print(proxy)
-        except:
-            pass
+            print(f"Fetched {len(all_proxies)} proxies.")
 
 if __name__ == '__main__':
-    main()
+    fetcher = AsyncProxyFetcher()
+    asyncio.run(fetcher.gather_all())
