@@ -16,7 +16,7 @@ class AsyncProxyFetcher:
 
     def __init__(self):
         self.proxy_file = Path("proxy.txt")
-        self.proxy_file.write_text("")
+        self.proxy_file.write_text("")  # Clear file at start
 
     async def fetch(self, url: str, session: ClientSession) -> str:
         try:
