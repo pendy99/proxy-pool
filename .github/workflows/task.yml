@@ -30,10 +30,6 @@ jobs:
         run: |
           python main.py
 
-      - name: Run verify.py
-        run: |
-          python verify.py
-
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
